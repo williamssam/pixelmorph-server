@@ -1,60 +1,29 @@
 import { z } from 'zod'
-
-const acceptedImageTypes = [
-	'image/jpeg',
-	'image/jpg',
-	'image/png',
-	'image/webp',
-	'image/gif',
-	'image/svg+xml',
-	'image/avif',
-	'image/heic',
-] as const
-
-const image_types = acceptedImageTypes.map(type => type.split('/')[1])
-const lossless_formats = ['png', 'webp', 'avif', 'heic']
-const object_fit = ['contain', 'cover', 'fill', 'inside', 'outside'] as const
-const object_positions = [
-	'top',
-	'bottom',
-	'left',
-	'right',
-	'center',
-	'right top',
-	'right bottom',
-	'left top',
-	'left bottom',
-] as const
+import { imageFormat, losslessFormats, objectFit, objectPositions } from '../../utils/constants'
 
 export const transformImageSchema = z.object({
-	// file: z.instanceof(Buffer),
+	image: z.string({ required_error: 'Image is required' }),
 	transformations: z.object({
-		/**Convert to 8-bit greyscale; 256 shades of grey.*/
-		image: z
+		convert: z
 			.object({
-				format: z
-					.string({
-						required_error: 'Image format to transform to is required',
-					})
-					.refine(val => image_types.includes(val), {
-						message: `Invalid image type, ${image_types.join(
-							', '
-						)} only  are supported`,
-					}),
+				format: z.enum(imageFormat, {
+					required_error: `Image format can only be one of: ${imageFormat.join(', ')}`,
+				}),
 				quality: z
 					.number({
 						required_error: 'Image Quality is required',
 					})
 					.positive()
 					.gte(1, 'Quality must be between 1 and 100')
-					.lte(100, 'Quality must be between 1 and 100'),
+					.lte(100, 'Quality must be between 1 and 100')
+					.catch(80),
 				lossless: z.boolean().optional(),
 			})
 			.superRefine((val, ctx) => {
-				if (String(val.lossless) && !lossless_formats.includes(val.format)) {
+				if (String(val.lossless) && !losslessFormats.includes(val.format)) {
 					ctx.addIssue({
 						code: z.ZodIssueCode.custom,
-						message: `Image format must be one of: "${lossless_formats.join(
+						message: `Image format must be one of: "${losslessFormats.join(
 							', '
 						)}" to be lossless`,
 					})
@@ -73,15 +42,15 @@ export const transformImageSchema = z.object({
 					})
 					.positive('Height must be positive number'),
 				object_position: z
-					.enum(object_positions, {
-						required_error: `Resize Position can only be one of: "${object_positions.join(
+					.enum(objectPositions, {
+						required_error: `Resize Position can only be one of: "${objectPositions.join(
 							', '
 						)}"`,
 					})
 					.default('center'),
 				object_fit: z
-					.enum(object_fit, {
-						required_error: `Resize Position can only be one of: "${object_fit.join(
+					.enum(objectFit, {
+						required_error: `Resize Position can only be one of: "${objectFit.join(
 							', '
 						)}"`,
 					})
@@ -111,9 +80,6 @@ export const transformImageSchema = z.object({
 			.optional(),
 		filters: z
 			.object({
-				/**
-				 * Convert to 8-bit greyscale; 256 shades of grey.
-				 */
 				grayscale: z.boolean().or(z.literal(undefined)),
 				// tint: z.string().co
 			})
@@ -121,7 +87,8 @@ export const transformImageSchema = z.object({
 	}),
 })
 
-// type TransformImageSchema = z.infer<typeof transformImageSchema>
+export type TransformImageSchema = z.infer<typeof transformImageSchema.shape.transformations>
+// export type TransformationsSchema = z.infer<typeof transformationsSchema>
 
 // quality
 // loseless (boolean: webp, jp2, avif, heif, jxl,)

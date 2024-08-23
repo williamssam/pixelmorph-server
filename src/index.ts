@@ -1,6 +1,5 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { csrf } from 'hono/csrf'
 import { logger } from 'hono/logger'
 import { prettyJSON } from 'hono/pretty-json'
 import mongoose from 'mongoose'
@@ -12,7 +11,7 @@ const app = new Hono()
 
 // middlewares
 app.use(cors())
-app.use(csrf())
+// app.use(csrf({}))
 app.use(logger())
 app.use(prettyJSON())
 
@@ -21,6 +20,7 @@ app.get('/api/v1/health-check', async c => {
 })
 app.route('/api/v1/auth', authRoutes)
 app.route('/api/v1', imgRoutes)
+
 // app.use('/api/v1', (c, next) => {
 // 	const jwtMiddleware = jwt({
 // 		secret: 'secret',
@@ -56,4 +56,5 @@ connectToDB()
 export default {
 	port: 4321,
 	fetch: app.fetch,
+	maxRequestBodySize: 200_000_000_000,
 }

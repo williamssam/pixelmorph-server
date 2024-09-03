@@ -6,12 +6,15 @@
 	},
 	"dependencies": {
 		"@hono/zod-validator": "^0.2.2",
+		"bun-compression": "^0.0.4",
 		"hono": "^4.5.6",
 		"mongoose": "^8.5.3",
+		"multer": "^1.4.5-lts.1",
 		"sharp": "^0.33.5",
 		"zod": "^3.23.8"
 	},
 	"devDependencies": {
-		"@types/bun": "latest"
+		"@types/bun": "latest",
+		"@types/multer": "^1.4.12"
 	}
 }

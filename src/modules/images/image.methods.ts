@@ -35,8 +35,23 @@ export const transformImage = async (payload: ImageTransform) => {
 		 **/
 		const metadata = await image.metadata()
 		const { data, info } = await image.toBuffer({ resolveWithObject: true })
+		const imageBase64 = `data:image/${info.format};base64,${data.toString('base64')}`
 
-		return { data, metadata, info }
+		return {
+			image: imageBase64,
+			new_metadata: {
+				width: info.width,
+				height: info.height,
+				size: info.size,
+				format: info.format,
+			},
+			old_metadata: {
+				width: metadata.width,
+				height: metadata.height,
+				size: metadata.size,
+				format: metadata.format,
+			},
+		}
 	} catch (error) {
 		if (error instanceof Error) {
 			console.log('Error transforming image', error)

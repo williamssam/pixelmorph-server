@@ -4,53 +4,48 @@ import { transformImage } from './image.methods'
 import { transformImageSchema } from './image.schema'
 
 const imgRoutes = new Hono()
+type Format = 'jpeg' | 'jpg' | 'jp2' | 'jxl' | 'png' | 'webp' | 'svg' | 'avif'
 
 /*
- * Todo: Convert to multiple formats
  * Todo: Convert multiple image
+ * What happens if ten people are converting at the same time. I think i should add queuing to this
  */
-imgRoutes.post('/transform', zValidator('json', transformImageSchema), async c => {
-	const valid = c.req.valid('json')
-	// console.log('valid', body)
+imgRoutes.post('/compress', zValidator('form', transformImageSchema), async c => {
+	const formdata = await c.req.formData()
 
-	const image = valid.image.split(';base64,')[1]
-	const input = Buffer.from(image, 'base64')
-	const transformedImage = await transformImage({
-		input: input,
-		format: valid.transformations.convert.format,
-		quality: valid.transformations.convert.quality,
-		lossless: valid.transformations.convert.lossless,
-	})
+	const format = formdata.get('format') as Format
+	const quality = formdata.get('quality') ?? 80
+	const lossless = formdata.get('lossless')
+	const images = formdata.getAll('image')
 
-	if (!transformedImage) {
-		return c.json({
-			success: false,
-			message: 'Error transforming image, please try again later',
+	let allImages = []
+	for (let index = 0; index < images.length; index++) {
+		const image = images[index]
+		// @ts-expect-error
+		const imageBuffer = Buffer.from(await image?.arrayBuffer())
+
+		const transformedImage = await transformImage({
+			input: imageBuffer,
+			format,
+			quality: Number(quality),
+			lossless: Boolean(lossless),
 		})
-	}
 
-	const base64 = `data:image/${
-		valid.transformations.convert.format
-	};base64,${transformedImage.data.toString('base64')}`
+		// FIXME: What happens if there is an error
+		if (!transformedImage) {
+			return c.json({
+				success: false,
+				message: 'Error transforming image, please try again later',
+			})
+		}
+
+		allImages.push(transformedImage)
+	}
 
 	return c.json({
 		success: true,
 		message: 'Image transformed successfully',
-		data: {
-			image: base64,
-			new_metadata: {
-				width: transformedImage.info.width,
-				height: transformedImage.info.height,
-				size: transformedImage.info.size,
-				format: transformedImage.info.format,
-			},
-			old_metadata: {
-				width: transformedImage.metadata.width,
-				height: transformedImage.metadata.height,
-				size: transformedImage.metadata.size,
-				format: transformedImage.metadata.format,
-			},
-		},
+		data:allImages,
 	})
 })
 

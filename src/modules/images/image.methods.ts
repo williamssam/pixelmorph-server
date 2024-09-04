@@ -1,40 +1,39 @@
 import sharp from 'sharp'
-import type { imageFormat } from '../../utils/constants'
+import type { z } from 'zod'
+import type { transformImageSchema } from './image.schema'
 
-type ImageTransform = {
-	input: Buffer | ArrayBuffer | Uint8Array
-	format: (typeof imageFormat)[number]
-	quality?: number
-	lossless?: boolean
-	resize?: {
-		width?: number
-		height?: number
-		object_fit?: 'cover' | 'contain'
-		object_position?: 'top' | 'bottom' | 'left' | 'right' | 'center'
-	}
+type ImageTransform = z.infer<typeof transformImageSchema>
+interface TransformImagePayload extends ImageTransform {
+	image: Buffer | Uint8Array
 }
 
-// TODO: validate function payload with zod
-
-export const transformImage = async (payload: ImageTransform) => {
+export const transformImage = async (payload: TransformImagePayload) => {
 	try {
-		const image = sharp(payload.input)
-			.toFormat(payload.format, {
-				quality: payload.quality ?? 80,
-				...(payload.lossless ? { lossless: payload.lossless } : {}),
-			})
-			.resize({
+		let transformer = sharp(payload.image).toFormat(payload.format, {
+			quality: payload.quality ?? 80,
+			...(payload.lossless ? { lossless: payload.lossless } : {}),
+		})
+
+		if (payload.resize) {
+			transformer = transformer.resize({
 				width: payload.resize?.width,
 				height: payload.resize?.height,
-				fit: payload.resize?.object_fit,
-				position: payload.resize?.object_position,
 			})
+		}
+
+		if (payload.grayscale) {
+			transformer = transformer.grayscale()
+		}
+
+		if (payload.rotate) {
+			transformer = transformer.rotate(payload.rotate)
+		}
 
 		/**
 		 * Gets metadata of uncompressed/unconverted image
 		 **/
-		const metadata = await image.metadata()
-		const { data, info } = await image.toBuffer({ resolveWithObject: true })
+		const metadata = await transformer.metadata()
+		const { data, info } = await transformer.toBuffer({ resolveWithObject: true })
 		const imageBase64 = `data:image/${info.format};base64,${data.toString('base64')}`
 
 		return {

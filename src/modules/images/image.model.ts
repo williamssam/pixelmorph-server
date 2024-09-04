@@ -1,12 +1,26 @@
 import mongoose from 'mongoose'
 
+export interface ImageDocument extends mongoose.Document {
+	_id: string
+	image: string
+	format: string
+	size: number
+	user: string
+	original_name: string
+	created_at: Date
+	updated_at: Date
+}
+
 const imagesModel = new mongoose.Schema(
 	{
 		image: {
-			type: Buffer,
+			type: String,
 			required: true,
 		},
-		client: {
+		format: String,
+		size: Number,
+		original_name: String,
+		user: {
 			type: mongoose.Schema.Types.ObjectId,
 			ref: 'User',
 			required: true,
@@ -20,5 +34,6 @@ const imagesModel = new mongoose.Schema(
 	}
 )
 
-const ImageModel = mongoose.model('Image', imagesModel)
+const ImageModel = mongoose.model<ImageDocument>('Image', imagesModel)
+
 export default ImageModel

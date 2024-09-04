@@ -5,7 +5,8 @@ import { prettyJSON } from 'hono/pretty-json'
 import mongoose from 'mongoose'
 import './compress-polyfill'
 import authRoutes from './modules/auth/auth.routes'
-import imgRoutes from './modules/images/image.routes'
+import compressRoute from './modules/compress/compress.routes'
+import imgRoute from './modules/images/image.routes'
 import { connectToDB } from './utils/connect-db'
 
 const app = new Hono()
@@ -19,7 +20,8 @@ app.get('/api/v1/health-check', async c => {
 	return c.text('OK')
 })
 app.route('/api/v1/auth', authRoutes)
-app.route('/api/v1', imgRoutes)
+app.route('/api/v1', imgRoute)
+app.route('/api/v1', compressRoute)
 
 // global error handling
 app.notFound(async c => {

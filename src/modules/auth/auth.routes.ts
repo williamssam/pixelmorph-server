@@ -51,7 +51,7 @@ authRoutes
 		}
 
 		const token = await sign(
-			{ username: user.username, exp: EXPIRE_AT },
+			{ username: user.username, id: user._id, exp: EXPIRE_AT },
 			Bun.env['TOKEN_KEY'] as string
 		)
 

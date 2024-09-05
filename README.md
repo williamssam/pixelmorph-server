@@ -52,3 +52,6 @@ open http://localhost:3000
 
 ## Gotcha
 - Storing images as base64 in our mongodb database. (note: mongodb collection has a 16mb limit). Another option I might explore is to store this images in GridFS or Cloudinary.
+
+## Challenge
+https://roadmap.sh/projects/image-processing-service

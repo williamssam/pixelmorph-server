@@ -2,15 +2,15 @@ import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { sign } from 'hono/jwt'
 import { HttpStatusCode } from '../../utils/types'
-import { authPayload } from './auth.schema'
-import { createUser, findUser } from './auth.service'
+import { userSchema } from './user.schema'
+import { createUser, findUser } from './user.service'
 
 const EXPIRE_AT = Math.floor(Date.now() / 1000) + 60 * 15 //15mins
 
-const authRoutes = new Hono()
+const userRoutes = new Hono()
 
-authRoutes
-	.post('/register', zValidator('json', authPayload), async c => {
+userRoutes
+	.post('/register', zValidator('json', userSchema), async c => {
 		const valid = c.req.valid('json')
 
 		const user = await findUser({ username: valid.username })
@@ -31,7 +31,7 @@ authRoutes
 			HttpStatusCode.CREATED
 		)
 	})
-	.post('/login', zValidator('json', authPayload), async c => {
+	.post('/login', zValidator('json', userSchema), async c => {
 		const valid = c.req.valid('json')
 
 		const user = await findUser({ username: valid.username })
@@ -65,4 +65,4 @@ authRoutes
 		})
 	})
 
-export default authRoutes
+export default userRoutes

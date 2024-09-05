@@ -4,9 +4,9 @@ import { logger } from 'hono/logger'
 import { prettyJSON } from 'hono/pretty-json'
 import mongoose from 'mongoose'
 import './compress-polyfill'
-import authRoutes from './modules/auth/auth.routes'
 import compressRoute from './modules/compress/compress.routes'
 import imgRoute from './modules/images/image.routes'
+import userRoutes from './modules/user/user.routes'
 import { connectToDB } from './utils/connect-db'
 
 const app = new Hono()
@@ -19,9 +19,9 @@ app.use(prettyJSON())
 app.get('/api/v1/health-check', async c => {
 	return c.text('OK')
 })
-app.route('/api/v1/auth', authRoutes)
-app.route('/api/v1', imgRoute)
+app.route('/api/v1/auth', userRoutes)
 app.route('/api/v1', compressRoute)
+app.route('/api/v1', imgRoute)
 
 // global error handling
 app.notFound(async c => {

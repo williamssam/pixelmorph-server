@@ -14,7 +14,7 @@ export interface ImageDocument extends mongoose.Document {
 const imagesModel = new mongoose.Schema(
 	{
 		image: {
-			type: String,
+			type: Buffer,
 			required: true,
 		},
 		format: String,

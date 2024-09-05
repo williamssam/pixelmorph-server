@@ -14,7 +14,7 @@ export const transformImage = async (payload: TransformImagePayload) => {
 			...(payload.lossless ? { lossless: payload.lossless } : {}),
 		})
 
-		if (payload.resize) {
+		if (payload.resize?.width && payload.resize?.height) {
 			transformer = transformer.resize({
 				width: payload.resize?.width,
 				height: payload.resize?.height,

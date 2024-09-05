@@ -1,6 +1,6 @@
 import type { FilterQuery, ProjectionType, QueryOptions } from 'mongoose'
-import type { UserDocument } from './auth.model'
-import UserModel from './auth.model'
+import type { UserDocument } from './user.model'
+import UserModel from './user.model'
 
 type UserInput = Pick<UserDocument, 'username' | 'password'>
 

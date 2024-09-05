@@ -1,9 +1,9 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
-import { jwt, verify } from 'hono/jwt'
+import { decode, jwt, verify } from 'hono/jwt'
 import { limiter } from '../../utils/helper'
 import { HttpStatusCode } from '../../utils/types'
-import { findUserById } from '../auth/auth.service'
+import { findUserById } from '../user/user.service'
 import { transformImage } from './image.methods'
 import {
 	getAllImageSchema,
@@ -11,10 +11,15 @@ import {
 	transformImageSchema,
 	uploadImageSchema,
 } from './image.schema'
-import { createImage, findImageById, getAllImages } from './image.service'
+import {
+	createImage,
+	deleteImage,
+	findImageById,
+	getAllImages,
+	totalUserImages,
+} from './image.service'
 
 const imgRoute = new Hono()
-// type Format = 'jpeg' | 'jpg' | 'jp2' | 'jxl' | 'png' | 'webp' | 'svg' | 'avif'
 
 // middlewares
 imgRoute.use('*', limiter, async (c, next) => {
@@ -64,10 +69,13 @@ imgRoute
 		return await next()
 	})
 	.post('/images', zValidator('form', uploadImageSchema), async c => {
-		const formdata = await c.req.formData()
+		const token = c.req.header('Authorization')?.replace('Bearer ', '') as string
+		const { payload } = decode(token)
 
+		const formdata = await c.req.formData()
 		const images = formdata.getAll('image')
 
+		const createdImages = []
 		for (let index = 0; index < images.length; index++) {
 			const image = images[index] as unknown as File
 
@@ -77,29 +85,41 @@ imgRoute
 			// @ts-expect-error
 			const imageBuffer = Buffer.from(await image?.arrayBuffer(), 'base64').toString('ascii')
 
-			await createImage({
+			const newImage = await createImage({
 				image: imageBuffer,
 				size,
 				format,
 				original_name,
+				user: payload?.id as string,
 			})
+
+			createdImages.push(newImage)
 		}
 
 		// add to database
 		return c.json({
 			success: true,
-			message: 'Image(S) uploaded successfully!',
+			message: 'Image(s) uploaded successfully!',
+			data: createdImages,
 		})
 	})
 	.get('/images/:id', zValidator('param', getImageSchema), async c => {
 		const { id } = c.req.valid('param')
 		const image = await findImageById(id)
-
 		if (!image) {
 			return c.json(
 				{ success: false, message: 'Image with id does not exists' },
 				HttpStatusCode.CONFLICT
 			)
+		}
+
+		const token = c.req.header('Authorization')?.replace('Bearer ', '') as string
+		const { payload } = decode(token)
+		if (payload.id !== image.user.toString()) {
+			return c.json({
+				success: false,
+				message: 'You are not authorized to perform this action',
+			})
 		}
 
 		return c.json({ success: true, message: 'Image fetched successfully', data: image })
@@ -113,28 +133,27 @@ imgRoute
 		async c => {
 			const { limit: requestedLimit, page: requestedPage } = c.req.valid('query')
 
-			// const user = await findUserById(user)
-			// if(!user) {
-			// 	return c.json({ success: false, message: 'User with id does not exists' }, HttpStatusCode.NOT_FOUND)
-			// }
+			const token = c.req.header('Authorization')?.replace('Bearer ', '') as string
+			const { payload } = decode(token)
 
 			const page = Number(requestedPage) || 1
 			const limit = Number(requestedLimit) || 15
 			const skip = (page - 1) * limit
 
-			const images = await getAllImages({ limit, skip })
-			// const total = await countInvoice(user_id)
+			const images = await getAllImages({ limit, skip, id: String(payload?.id) })
+			const total = await totalUserImages(payload?.id)
 
 			return c.json({
 				success: true,
 				message: 'Images fetched successfully!',
 				data: images,
 				meta: {
-					// total,
+					total,
 					current_page: page,
 					per_page: limit,
-					// total_pages: Math.ceil(total / limit) || 1,
-					// has_next_page: page < Math.ceil(total / limit),
+					total_pages: Math.ceil(total / limit) || 1,
+					has_next_page: page < Math.ceil(total / limit),
+					has_previous_page: page > 1,
 				},
 			})
 		}
@@ -155,9 +174,20 @@ imgRoute
 				})
 			}
 
-			const base64Image = image.image.replace(/^data:image\/\w+;base64,/, '')
+			const token = c.req.header('Authorization')?.replace('Bearer ', '') as string
+			const { payload } = decode(token)
+			if (payload.id !== image.user.toString()) {
+				return c.json({
+					success: false,
+					message: 'You are not authorized to perform this action',
+				})
+			}
+
+			const imageBuffer = Buffer.from(image.image, 'base64url')
+			console.log(imageBuffer)
+			// const base64Image = image.image.replace(/^data:image\/\w+;base64,/, '')
 			const transformedImage = await transformImage({
-				image: Buffer.from(base64Image, 'base64'),
+				image: imageBuffer,
 				format: data.format,
 				quality: data.quality,
 				lossless: data.lossless,
@@ -173,5 +203,28 @@ imgRoute
 			})
 		}
 	)
+	.delete('/images/:id', zValidator('param', getImageSchema), async c => {
+		const { id } = c.req.valid('param')
+
+		const image = await findImageById(id)
+		if (!image) {
+			return c.json({
+				success: false,
+				message: 'Image with id does not exists',
+			})
+		}
+
+		const token = c.req.header('Authorization')?.replace('Bearer ', '') as string
+		const { payload } = decode(token)
+		if (payload.id !== image.user.toString()) {
+			return c.json({
+				success: false,
+				message: 'You are not authorized to perform this action',
+			})
+		}
+
+		await deleteImage(id)
+		return c.json({ success: true, message: 'Image deleted successfully!' })
+	})
 
 export default imgRoute

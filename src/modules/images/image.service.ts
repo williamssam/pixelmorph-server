@@ -23,7 +23,7 @@ export const getAllImages = ({ limit, skip, id }: GetAllImageInput) => {
 
 export const totalUserImages = (id: UserDocument['id']) => {
 	return ImageModel.countDocuments({
-		user_id: id,
+		user: id,
 	})
 }
 

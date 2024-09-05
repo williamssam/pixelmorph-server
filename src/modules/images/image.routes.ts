@@ -68,6 +68,9 @@ imgRoute
 
 		return await next()
 	})
+	/*
+	 * @description Upload one or multiple images
+	 */
 	.post('/images', zValidator('form', uploadImageSchema), async c => {
 		const token = c.req.header('Authorization')?.replace('Bearer ', '') as string
 		const { payload } = decode(token)
@@ -82,9 +85,8 @@ imgRoute
 			const size = image.size
 			const format = image.type
 			const original_name = image.name
-			// @ts-expect-error
-			const imageBuffer = Buffer.from(await image?.arrayBuffer(), 'base64').toString('ascii')
 
+			const imageBuffer = Buffer.from(await image?.arrayBuffer()).toString('base64')
 			const newImage = await createImage({
 				image: imageBuffer,
 				size,
@@ -103,6 +105,9 @@ imgRoute
 			data: createdImages,
 		})
 	})
+	/*
+	 * @description Get one image
+	 */
 	.get('/images/:id', zValidator('param', getImageSchema), async c => {
 		const { id } = c.req.valid('param')
 		const image = await findImageById(id)
@@ -124,6 +129,9 @@ imgRoute
 
 		return c.json({ success: true, message: 'Image fetched successfully', data: image })
 	})
+	/*
+	 * @description Get all user images
+	 */
 	.get(
 		'/images',
 		zValidator('query', getAllImageSchema),
@@ -158,6 +166,9 @@ imgRoute
 			})
 		}
 	)
+	/*
+	 * @description Transform image
+	 */
 	.post(
 		'/images/:id/transform',
 		zValidator('param', getImageSchema),
@@ -183,11 +194,10 @@ imgRoute
 				})
 			}
 
-			const imageBuffer = Buffer.from(image.image, 'base64url')
-			console.log(imageBuffer)
-			// const base64Image = image.image.replace(/^data:image\/\w+;base64,/, '')
+			// const imageBuffer = Buffer.from(image.image).toString('base64')
 			const transformedImage = await transformImage({
-				image: imageBuffer,
+				// @ts-expect-error
+				image: image.image,
 				format: data.format,
 				quality: data.quality,
 				lossless: data.lossless,
@@ -203,6 +213,9 @@ imgRoute
 			})
 		}
 	)
+	/*
+	 * @description Delete image
+	 */
 	.delete('/images/:id', zValidator('param', getImageSchema), async c => {
 		const { id } = c.req.valid('param')
 

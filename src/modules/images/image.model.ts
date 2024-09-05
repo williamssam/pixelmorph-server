@@ -16,9 +16,22 @@ const imagesModel = new mongoose.Schema(
 		image: {
 			type: Buffer,
 			required: true,
+			set: (val: any) => {
+				if (typeof val === 'string') {
+					const rawBase64 = val.replace(/^data:image\/\w+;base64,/, '')
+					return Buffer.from(rawBase64, 'base64')
+				}
+				return val
+			},
 		},
-		format: String,
-		size: Number,
+		format: {
+			type: String,
+			required: true,
+		},
+		size: {
+			type: Number,
+			required: true,
+		},
 		original_name: String,
 		user: {
 			type: mongoose.Schema.Types.ObjectId,

@@ -23,7 +23,7 @@ export const getAllImageSchema = z.object({
 		.positive()
 		.min(5, 'Limit cannot be less than 5')
 		.max(100, 'Limit cannot be more than 100')
-		.catch(15),
+		.optional(),
 	page: z.coerce
 		.number({
 			required_error: 'Page is required',

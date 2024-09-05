@@ -54,6 +54,7 @@ export const transformImage = async (payload: TransformImagePayload) => {
 	} catch (error) {
 		if (error instanceof Error) {
 			console.log('Error transforming image', error)
+			throw error
 		}
 	}
 }
